@@ -6,7 +6,9 @@ var nodemailer = require('nodemailer');
 var settings = JSON.parse(fs.readFileSync('settings.json', 'utf8'));
 const gmailAddress = settings.email
 const gmailPassword = settings.password
+var happyRideUrl = 'https://happyride.se/annonser/?search=spectral&category=1&county=&type=1&category2=&county2=&type2=&price=&year=';
 var happyRideBikes = []
+var canyonUrl = 'http://www.canyon.com/sv/factory-outlet/category.html';
 var canyonBikes = []
 var interval = 10 * 60 * 1000 //check every 10 mins
 var maxTimeWithoutEmail = 24 * 60 * 60 * 1000; //24h
@@ -21,9 +23,8 @@ var transporter = nodemailer.createTransport({
 });
 
 function scrapeHappyRide(callback) {
-  console.log('Scraping HappyRide');
-  var pageURL = 'https://happyride.se/annonser/?search=spectral&category=1&county=&type=1&category2=&county2=&type2=&price=&year=';
-  request(pageURL, function(error, response, html) {
+  console.log(new Date().toGMTString() + ' Scraping HappyRide');
+  request(happyRideUrl, function(error, response, html) {
     if (!error) {
       var $ = cheerio.load(html);
       var salesTable = $('.sales-table')
@@ -39,7 +40,7 @@ function scrapeHappyRide(callback) {
         })
         if (newBikes.length > happyRideBikes.length) {
           console.log("new happyRideBikes found: ", newBikes)
-          body = newBikes.join('\n') + "\nURL: " + pageURL
+          body = newBikes.join('\n') + "\nURL: " + happyRideUrl
           mailContent = {
             from: gmailAddress,
             to: 'hakan@maclean.se',
@@ -55,8 +56,7 @@ function scrapeHappyRide(callback) {
 }
 
 function scrapeCanyon(callback) {
-  console.log('Scraping Canyon.com');
-  var url = 'http://www.canyon.com/sv/factory-outlet/category.html';
+  console.log(new Date().toGMTString() + ' Scraping Canyon.com');
   var Horseman = require('node-horseman');
   var horseman = new Horseman({
     injectJquery: true, 
@@ -66,7 +66,7 @@ function scrapeCanyon(callback) {
   });
 
   horseman
-    .open(url)
+    .open(canyonUrl)
     .click('a:contains("MTB/GRAVITY")')
     .waitForSelector('.product-box')
     // .screenshot('test.png')
@@ -77,14 +77,14 @@ function scrapeCanyon(callback) {
       var newCanyonBikes = []
       products.each(function() {
         var product = $(this).attr('data-product');
-        var title = JSON.parse(product).name;
-        if (title.includes('Spectral')) {
-          newCanyonBikes.push(title);
+        var productJson = JSON.parse(product);
+        if (productJson.name.includes('Spectral')) {
+          newCanyonBikes.push(`${productJson.name} (${productJson.price})`);
         }
       });
       if (newCanyonBikes.length > canyonBikes.length) {
         console.log("new canyon bikes found: ", newCanyonBikes)
-        body = newCanyonBikes.join('\n') + "\nURL: " + url
+        body = newCanyonBikes.join('\n') + "\nURL: " + canyonUrl
         mailContent = {
           from: gmailAddress,
           to: 'hakan@maclean.se',
@@ -120,11 +120,13 @@ function sendEmail(mailContent) {
 
 function sendStatusEmailIfNeeed() {
   if ((Date.now() - lastSent) >  maxTimeWithoutEmail) {
-    var mailContent = {
+    var body = 'HappyRide bikes:\n' + happyRideBikes.join('\n') + "\nURL: " + happyRideUrl
+    + "\nCANYON bikes:\n" +  canyonBikes.join('\n') + "\nURL: " + canyonUrl;
+      var mailContent = {
       from: gmailAddress,
       to: 'hakan@maclean.se',
       subject: 'HappyRideScraper online',
-      text: "" 
+      text: body
     };
     sendEmail(mailContent)
   }
