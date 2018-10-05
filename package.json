@@ -8,6 +8,7 @@
     "request"    : "latest",
     "cheerio"    : "latest",
     "nodemailer" : "latest",
-    "fs"         : "latest"
+    "fs"         : "latest",
+    "node-horseman": "latest"
   }
-}
+} 
