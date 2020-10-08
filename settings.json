@@ -1,0 +1,7 @@
+{
+	"email": "XXXX",
+	"password": "YYYYY",
+	"canyon_urls": ["https://www.canyon.com/en-se/search/?cgid=outlet-collections&prefn1=pc_familie&prefv1=Spectral"],
+	"happyride_urls": ["https://happyride.se/annonser/?search=spectral&category=1&county=&type=1&category2=&county2=&type2=&price=&year=",
+				  "https://happyride.se/annonser/?search=neuron&category=1&county=&type=1&category2=&county2=&type2=&price=&year="]
+}
