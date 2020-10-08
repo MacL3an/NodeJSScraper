@@ -8,7 +8,7 @@ const gmailAddress = settings.email
 const gmailPassword = settings.password
 var happyRideUrl = 'https://happyride.se/annonser/?search=spectral&category=1&county=&type=1&category2=&county2=&type2=&price=&year=';
 var happyRideBikes = []
-var canyonUrl = 'http://www.canyon.com/sv/factory-outlet/category.html';
+const canyonUrl = 'https://www.canyon.com/en-se/search/?cgid=outlet-collections&prefn1=pc_familie&prefv1=Spectral'
 var canyonBikes = []
 var interval = 10 * 60 * 1000 //check every 10 mins
 var maxTimeWithoutEmail = 24 * 60 * 60 * 1000; //24h
@@ -67,21 +67,29 @@ function scrapeCanyon(callback) {
 
   horseman
     .open(canyonUrl)
-    .click('a:contains("MTB/GRAVITY")')
-    .waitForSelector('.product-box')
-    // .screenshot('test.png')
+    .waitForSelector('.productGrid__list')
     .html('body')
     .then((html) => {
-      var $ = cheerio.load(html);
-      var products = $('.product-box');
       var newCanyonBikes = []
-      products.each(function() {
-        var product = $(this).attr('data-product');
-        var productJson = JSON.parse(product);
-        if (productJson.name.includes('Spectral')) {
-          newCanyonBikes.push(`${productJson.name} (${productJson.price})`);
-        }
+
+      console.log('trying to parse')
+
+      var $ = cheerio.load(html);
+      const heading = $('.heading--1')
+      if (heading.text().includes('Campaign')) {
+        console.log('No hits, got Campaign sight')
+        canyonBikes = newCanyonBikes;
+        return
+      }
+
+      var products = $('.productGrid__list')
+      $('.productGrid__listItem').each((i, elm) => {
+        const name = $(elm).find('.productTile__productName').first().text().trim()
+        const price = $(elm).find('.productTile__size').first().text().trim()
+        newCanyonBikes.push(`${name} (${price})`)
       });
+      console.log("bikes found: " + newCanyonBikes)
+
       if (newCanyonBikes.length > canyonBikes.length) {
         console.log("new canyon bikes found: ", newCanyonBikes)
         body = newCanyonBikes.join('\n') + "\nURL: " + canyonUrl
